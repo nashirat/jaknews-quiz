@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { Quiz, Question, Option } from "@/types/quiz";
-import { use } from "react";
 
 interface QuestionFormState {
   questionText: string;
@@ -43,13 +42,12 @@ const emptyTrueFalseQuestion: QuestionFormState = {
 export default function QuestionsPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: { id: string };
 }) {
   const router = useRouter();
   
-  // Use React.use to safely access params, whether it's a Promise or not
-  const resolvedParams = use(Promise.resolve(params));
-  const id = resolvedParams.id;
+  // Access params directly in client component
+  const id = params.id;
   
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);

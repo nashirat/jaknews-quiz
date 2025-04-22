@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { Option } from "@/types/quiz";
+import LeaderboardTable from "@/app/components/LeaderboardTable";
 
 export const revalidate = 0;
 
@@ -130,30 +131,7 @@ export default async function QuizDetailPage({
       <div className="border border-gray-700 rounded-lg p-6 bg-black mt-6">
         <h2 className="text-xl font-medium mb-4 text-white">Leaderboard</h2>
         {leaderboardData && leaderboardData.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="py-2 px-4 text-left text-sm text-gray-400">Rank</th>
-                  <th className="py-2 px-4 text-left text-sm text-gray-400">Name</th>
-                  <th className="py-2 px-4 text-left text-sm text-gray-400">Contact</th>
-                  <th className="py-2 px-4 text-left text-sm text-gray-400">Score</th>
-                  <th className="py-2 px-4 text-left text-sm text-gray-400">Completed At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboardData.map((entry, index) => (
-                  <tr key={entry.id} className="border-b border-gray-700">
-                    <td className="py-2 px-4">{index + 1}</td>
-                    <td className="py-2 px-4">{entry.user_name || 'Anonymous'}</td>
-                    <td className="py-2 px-4">{entry.contact_info || 'Unknown'}</td>
-                    <td className="py-2 px-4">{entry.score}/3</td>
-                    <td className="py-2 px-4">{format(new Date(entry.completed_at), "MMM d, yyyy, h:mm a")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <LeaderboardTable data={leaderboardData} />
         ) : (
           <div className="text-center py-8 border-dashed border-2 border-gray-700 rounded-lg">
             <p className="text-gray-400">
