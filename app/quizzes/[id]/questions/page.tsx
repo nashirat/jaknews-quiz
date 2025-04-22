@@ -43,13 +43,14 @@ const emptyTrueFalseQuestion: QuestionFormState = {
 export default function QuestionsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }> | { id: string };
 }) {
   const router = useRouter();
   
-  // Safely access id in a way that works with both direct access and Promise
-  // This suppresses the warning without breaking functionality
-  const id = params?.id;
+  // Use React.use to safely access params, whether it's a Promise or not
+  const resolvedParams = use(Promise.resolve(params));
+  const id = resolvedParams.id;
+  
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<QuestionFormState>(
