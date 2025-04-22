@@ -6,16 +6,18 @@ import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Quiz, Question, Option } from "@/types/quiz";
+import { use } from "react";
 
 export default function QuizSessionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }> | { id: string };
 }) {
   const router = useRouter();
   
-  // Safely access id directly since this is a client component
-  const id = params.id;
+  // Use React.use to safely access params, whether it's a Promise or not
+  const resolvedParams = use(Promise.resolve(params));
+  const id = resolvedParams.id;
   
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
