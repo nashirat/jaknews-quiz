@@ -102,3 +102,45 @@ Please file feedback and issues over on the [Supabase GitHub org](https://github
 - [Next.js Subscription Payments Starter](https://github.com/vercel/nextjs-subscription-payments)
 - [Cookie-based Auth and the Next.js 13 App Router (free course)](https://youtube.com/playlist?list=PL5S4mPUpp4OtMhpnp93EFSo42iQ40XjbF)
 - [Supabase Auth and the Next.js App Router](https://github.com/supabase/supabase/tree/master/examples/auth/nextjs)
+
+# JAK News Quiz Application
+
+This is a quiz application for symposium sessions.
+
+## Setup
+
+1. Clone the repository
+2. Run `npm install`
+3. Create a `.env.local` file with your Supabase credentials:
+```
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+4. Run the Supabase SQL schema from the `supabase_schema.sql` file in your Supabase SQL editor
+5. Run `npm run dev` to start the application
+
+### Important: Row Level Security (RLS) Policies
+
+The application is configured to allow anonymous access (no authentication required) to all tables. The SQL script in `supabase_schema.sql` creates the necessary Row Level Security policies that allow any user to:
+
+- View, create, update, and delete quizzes
+- View, create, update, and delete questions and options
+- Submit quiz responses without authentication
+
+If you encounter the error "new row violates row-level security policy for table 'quizzes'", make sure to run the complete SQL script to properly set up the RLS policies.
+
+## Quiz Application Features
+
+- Create and manage quizzes with passcodes
+- Each quiz has 3 questions (Multiple Choice or True/False)
+- Each question has a 40-second time limit
+- Participants need a passcode to access the quiz
+- Scores are accumulated throughout the day
+
+## Implementation Details
+
+- Next.js app with server and client components
+- Supabase for backend storage (no authentication required)
+- Quiz listing page with ability to create new quizzes
+- Quiz detail page to view and manage questions
+- Passcode entry for taking quizzes
