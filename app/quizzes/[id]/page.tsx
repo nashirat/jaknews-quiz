@@ -11,11 +11,9 @@ export const revalidate = 0;
 export default async function QuizDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }> | { id: string };
+  params: { id: string };
 }) {
-  // Await params before accessing properties
-  const resolvedParams = await Promise.resolve(params);
-  const id = resolvedParams.id;
+  const id = params.id;
   
   if (!id) {
     return notFound();
