@@ -56,6 +56,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [instanceKey, setInstanceKey] = useState<string>(Date.now().toString());
 
   const supabase = createClient();
 
@@ -100,6 +101,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
         ? createEmptyMultipleChoiceQuestion()
         : createEmptyTrueFalseQuestion()
     );
+    setInstanceKey(Date.now().toString());
   };
 
   const handleOptionChange = (index: number, value: string) => {
@@ -210,19 +212,25 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
         throw new Error(optionsError.message);
       }
 
-      // Reset form and refresh questions
-      setCurrentQuestion(
-        currentQuestion.questionType === "multiple_choice"
-          ? createEmptyMultipleChoiceQuestion()
-          : createEmptyTrueFalseQuestion()
-      );
-
       // Add the new question to the list
       const newQuestion = {
         ...questionData,
         options: optionsToInsert,
       };
       setQuestions([...questions, newQuestion as Question]);
+
+      // Force complete reset of form with clean state
+      // Reset form and refresh questions - create fresh objects
+      const newQuestionState = currentQuestion.questionType === "multiple_choice"
+        ? createEmptyMultipleChoiceQuestion()
+        : createEmptyTrueFalseQuestion();
+      
+      // Force image reset
+      setTimeout(() => {
+        setCurrentQuestion(newQuestionState);
+        setInstanceKey(Date.now().toString());
+      }, 0);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -373,7 +381,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
 
             <div className="space-y-2">
               <ImageUpload 
-                key={`question-img-upload-${currentQuestion.questionType}`}
+                key={`question-img-upload-${currentQuestion.questionType}-${instanceKey}`}
                 onImageUploaded={handleQuestionImageChange}
                 existingImageUrl={currentQuestion.questionImage}
                 label="Question Image (Optional)"
@@ -414,7 +422,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                   {currentQuestion.questionType === "multiple_choice" && (
                     <div key={`img-upload-${option.id}`} className="ml-7">
                       <ImageUpload 
-                        key={`option-img-upload-${option.id}`}
+                        key={`option-img-upload-${option.id}-${instanceKey}`}
                         onImageUploaded={(url) => handleOptionImageChange(index, url)}
                         existingImageUrl={option.optionImage}
                         label={`Option ${index + 1} Image (Optional)`}
