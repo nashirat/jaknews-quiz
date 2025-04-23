@@ -269,7 +269,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                 {index + 1}. {question.question_text}
               </h3>
               {question.image_url && (
-                <div className="mt-2 relative h-40 bg-gray-800 rounded overflow-hidden">
+                <div key={`question-img-${question.id}`} className="mt-2 relative h-40 bg-gray-800 rounded overflow-hidden">
                   <Image 
                     src={question.image_url} 
                     alt="Question image" 
@@ -291,9 +291,9 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                         : "bg-white border border-gray-300 text-gray-800"
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div key={`flex-${option.id}`} className="flex items-center gap-2">
                       {option.image_url && (
-                        <div className="relative w-10 h-10 bg-gray-100 rounded overflow-hidden">
+                        <div key={`option-img-${option.id}`} className="relative w-10 h-10 bg-gray-100 rounded overflow-hidden">
                           <Image 
                             src={option.image_url} 
                             alt="Option image" 
@@ -385,7 +385,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                   key={option.id}
                   className="flex flex-col gap-3 border border-gray-700 p-3 rounded bg-black"
                 >
-                  <div className="flex items-center gap-3">
+                  <div key={`form-${option.id}`} className="flex items-center gap-3">
                     <Checkbox
                       id={`correct-${index}`}
                       checked={option.isCorrect}
@@ -396,9 +396,10 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                     />
                     <Label htmlFor={`correct-${index}`} className="flex-grow text-white">
                       {currentQuestion.questionType === "true_false" ? (
-                        option.optionText
+                        <span key={`tf-text-${option.id}`}>{option.optionText}</span>
                       ) : (
                         <Input
+                          key={`mc-input-${option.id}`}
                           value={option.optionText}
                           onChange={(e) => handleOptionChange(index, e.target.value)}
                           placeholder={`Option ${index + 1}`}
@@ -409,7 +410,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                   </div>
                   
                   {currentQuestion.questionType === "multiple_choice" && (
-                    <div className="ml-7">
+                    <div key={`img-upload-${option.id}`} className="ml-7">
                       <ImageUpload 
                         onImageUploaded={(url) => handleOptionImageChange(index, url)}
                         label={`Option ${index + 1} Image (Optional)`}
