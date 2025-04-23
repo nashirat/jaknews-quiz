@@ -161,11 +161,11 @@ export default function BrainBeePage({
             <>
               <p className="text-gray-300 pt-2">
                 <span className="text-gray-500">Available From:</span>{' '}
-                {brainbee.available_from ? format(parseISO(brainbee.available_from), "MMM d, yyyy h:mm a") + " UTC" : ''}
+                {brainbee.available_from ? format(parseISO(brainbee.available_from), "MMM d, yyyy h:mm a") : ''}
               </p>
               <p className="text-gray-300">
                 <span className="text-gray-500">Available To:</span>{' '}
-                {brainbee.available_to ? format(parseISO(brainbee.available_to), "MMM d, yyyy h:mm a") + " UTC" : ''}
+                {brainbee.available_to ? format(parseISO(brainbee.available_to), "MMM d, yyyy h:mm a") : ''}
               </p>
             </>
           )}
