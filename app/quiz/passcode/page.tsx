@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,22 @@ import Link from "next/link";
 
 export default function PasscodePage() {
   const router = useRouter();
+  const [name, setName] = useState("");
+  const [contactInfo, setContactInfo] = useState("");
   const [passcode, setPasscode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
+  
+  // Load saved user info from localStorage
+  useEffect(() => {
+    const savedName = localStorage.getItem("quiz_user_name");
+    const savedContact = localStorage.getItem("quiz_user_contact");
+    
+    if (savedName) setName(savedName);
+    if (savedContact) setContactInfo(savedContact);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +33,15 @@ export default function PasscodePage() {
     setError(null);
 
     try {
+      // Validate form fields
+      if (!name.trim()) {
+        throw new Error("Your name is required");
+      }
+
+      if (!contactInfo.trim()) {
+        throw new Error("Your email or phone number is required");
+      }
+
       if (!passcode.trim()) {
         throw new Error("Please enter a passcode");
       }
@@ -41,6 +61,25 @@ export default function PasscodePage() {
         throw new Error("Invalid passcode. Please try again");
       }
 
+      // Check if user has already taken this quiz
+      const { data: existingScores, error: scoresError } = await supabase
+        .from("user_quiz_scores")
+        .select("id")
+        .eq("quiz_id", quizzes[0].id)
+        .eq("contact_info", contactInfo.trim());
+
+      if (scoresError) {
+        throw new Error("Error checking previous attempts");
+      }
+
+      if (existingScores && existingScores.length > 0) {
+        throw new Error("You have already taken this quiz. Each participant may only attempt the quiz once.");
+      }
+
+      // Store the user's information in localStorage for later use
+      localStorage.setItem("quiz_user_name", name.trim());
+      localStorage.setItem("quiz_user_contact", contactInfo.trim());
+
       // Redirect to the quiz session
       router.push(`/quiz/${quizzes[0].id}`);
     } catch (err) {
@@ -56,6 +95,31 @@ export default function PasscodePage() {
         <h1 className="text-2xl font-bold mb-6 text-center">Enter Quiz Passcode</h1>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-white">Your Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              required
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="contactInfo" className="text-white">Email or Phone Number</Label>
+            <Input
+              id="contactInfo"
+              value={contactInfo}
+              onChange={(e) => setContactInfo(e.target.value)}
+              placeholder="Enter your email or phone"
+              required
+              className="bg-gray-900 border-gray-700 text-white"
+            />
+            <p className="text-xs text-gray-400">Used to prevent multiple attempts</p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="passcode" className="text-white">Quiz Passcode</Label>
             <Input

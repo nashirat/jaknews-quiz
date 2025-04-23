@@ -7,16 +7,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { PlusCircle, XCircle } from "lucide-react";
+
+type TeamMember = {
+  name: string;
+  email: string;
+};
 
 export default function BrainBeePasscodePage() {
   const router = useRouter();
   const [passcode, setPasscode] = useState("");
-  const [userName, setUserName] = useState("");
-  const [userContact, setUserContact] = useState("");
+  const [leaderName, setLeaderName] = useState("");
+  const [leaderEmail, setLeaderEmail] = useState("");
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
+
+  const handleAddTeamMember = () => {
+    if (teamMembers.length < 5) {
+      setTeamMembers([...teamMembers, { name: "", email: "" }]);
+    }
+  };
+
+  const handleRemoveTeamMember = (index: number) => {
+    const newMembers = [...teamMembers];
+    newMembers.splice(index, 1);
+    setTeamMembers(newMembers);
+  };
+
+  const handleTeamMemberChange = (index: number, field: 'name' | 'email', value: string) => {
+    const newMembers = [...teamMembers];
+    newMembers[index][field] = value;
+    setTeamMembers(newMembers);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +53,12 @@ export default function BrainBeePasscodePage() {
         throw new Error("Please enter a passcode");
       }
 
-      if (!userName.trim()) {
-        throw new Error("Please enter your name");
+      if (!leaderName.trim()) {
+        throw new Error("Please enter team leader's name");
+      }
+
+      if (!leaderEmail.trim()) {
+        throw new Error("Please enter team leader's email");
       }
 
       // Find the BrainBee with this passcode
@@ -65,9 +94,61 @@ export default function BrainBeePasscodePage() {
         }
       }
 
-      // Save user info to localStorage
-      localStorage.setItem("quiz_user_name", userName);
-      localStorage.setItem("quiz_user_contact", userContact);
+      // Check if leader email has already participated in this BrainBee
+      const { data: existingLeaderScores, error: leaderScoresError } = await supabase
+        .from("user_quiz_scores")
+        .select("id")
+        .eq("quiz_id", brainbee.id)
+        .eq("contact_info", leaderEmail.trim());
+
+      if (leaderScoresError) {
+        throw new Error("Error checking previous attempts");
+      }
+
+      if (existingLeaderScores && existingLeaderScores.length > 0) {
+        throw new Error("Team leader has already participated in this BrainBee. Each participant may only attempt the BrainBee once.");
+      }
+
+      // Check if any team member email has already participated
+      const validTeamEmails = teamMembers
+        .filter(member => member.email.trim())
+        .map(member => member.email.trim());
+      
+      if (validTeamEmails.length > 0) {
+        const { data: existingMemberScores, error: memberScoresError } = await supabase
+          .from("user_quiz_scores")
+          .select("id, contact_info")
+          .eq("quiz_id", brainbee.id)
+          .in("contact_info", validTeamEmails);
+
+        if (memberScoresError) {
+          throw new Error("Error checking team members' previous attempts");
+        }
+
+        if (existingMemberScores && existingMemberScores.length > 0) {
+          // Find which team member has already participated
+          const existingMemberEmail = existingMemberScores[0].contact_info;
+          const existingMember = teamMembers.find(m => m.email.trim() === existingMemberEmail);
+          throw new Error(`Team member ${existingMember?.name || ''} has already participated in this BrainBee. Each participant may only attempt the BrainBee once.`);
+        }
+      }
+
+      // Format team information
+      const teamInfo = {
+        leader: {
+          name: leaderName.trim(),
+          email: leaderEmail.trim()
+        },
+        members: teamMembers.filter(m => m.name.trim()).map(m => ({
+          name: m.name.trim(),
+          email: m.email.trim() || null
+        }))
+      };
+
+      // Save team info to localStorage
+      localStorage.setItem("quiz_team_info", JSON.stringify(teamInfo));
+      localStorage.setItem("quiz_user_name", leaderName.trim()); // Use leader name as team name
+      localStorage.setItem("quiz_user_contact", leaderEmail.trim()); // Use leader email as contact
 
       // Redirect to the BrainBee session
       router.push(`/brainbee/session/${brainbee.id}`);
@@ -80,8 +161,8 @@ export default function BrainBeePasscodePage() {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 py-16 bg-black text-white">
-      <div className="w-full max-w-md p-8 border border-gray-700 rounded-lg bg-black shadow-sm">
-        <h1 className="text-2xl font-bold mb-6 text-center">Enter BrainBee Passcode</h1>
+      <div className="w-full max-w-2xl p-8 border border-gray-700 rounded-lg bg-black shadow-sm">
+        <h1 className="text-2xl font-bold mb-6 text-center">Start BrainBee</h1>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
@@ -96,33 +177,110 @@ export default function BrainBeePasscodePage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="userName" className="text-white">Your Name</Label>
-            <Input
-              id="userName"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              placeholder="Enter your name"
-              required
-              className="bg-gray-900 border-gray-700 text-white"
-            />
+          <div className="border border-gray-700 rounded-lg p-4 mt-6 bg-gray-900/30">
+            <h3 className="font-medium text-white mb-4">Team Leader Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="leaderName" className="text-white">Leader Name</Label>
+                <Input
+                  id="leaderName"
+                  value={leaderName}
+                  onChange={(e) => setLeaderName(e.target.value)}
+                  placeholder="Enter team leader's name"
+                  required
+                  className="bg-gray-900 border-gray-700 text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="leaderEmail" className="text-white">Leader Email</Label>
+                <Input
+                  id="leaderEmail"
+                  value={leaderEmail}
+                  onChange={(e) => setLeaderEmail(e.target.value)}
+                  placeholder="Enter team leader's email"
+                  type="email"
+                  required
+                  className="bg-gray-900 border-gray-700 text-white"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="userContact" className="text-white">Your Email/Phone (Optional)</Label>
-            <Input
-              id="userContact"
-              value={userContact}
-              onChange={(e) => setUserContact(e.target.value)}
-              placeholder="Enter your email or phone"
-              className="bg-gray-900 border-gray-700 text-white"
-            />
+          <div className="border border-gray-700 rounded-lg p-4 bg-gray-900/30">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-medium text-white">Team Members (Optional)</h3>
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={handleAddTeamMember}
+                disabled={teamMembers.length >= 5}
+                className="border-blue-700 text-blue-400 hover:bg-blue-900/30 text-xs"
+              >
+                <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                Add Member
+              </Button>
+            </div>
+            
+            {teamMembers.length === 0 ? (
+              <p className="text-sm text-gray-400 mb-3">
+                You can participate individually or add team members if you're working as a team.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {teamMembers.map((member, index) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 relative border border-gray-800 rounded p-3">
+                    <div className="space-y-2">
+                      <Label htmlFor={`memberName${index}`} className="text-white">
+                        Member {index + 1} Name
+                      </Label>
+                      <Input
+                        id={`memberName${index}`}
+                        value={member.name}
+                        onChange={(e) => handleTeamMemberChange(index, 'name', e.target.value)}
+                        placeholder="Enter team member's name"
+                        className="bg-gray-900 border-gray-700 text-white"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`memberEmail${index}`} className="text-white">
+                        Member {index + 1} Email
+                      </Label>
+                      <Input
+                        id={`memberEmail${index}`}
+                        value={member.email}
+                        onChange={(e) => handleTeamMemberChange(index, 'email', e.target.value)}
+                        placeholder="Enter team member's email"
+                        type="email"
+                        className="bg-gray-900 border-gray-700 text-white"
+                      />
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveTeamMember(index)}
+                      className="absolute top-3 right-3 text-red-400 hover:text-red-300 hover:bg-transparent"
+                    >
+                      <XCircle className="h-5 w-5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <p className="text-xs text-gray-400 mt-3">
+              Team members' emails are optional but help prevent duplicate participation
+            </p>
           </div>
 
           <div className="p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
             <h3 className="font-semibold text-blue-400 mb-2">About BrainBee</h3>
             <p className="text-sm text-gray-300">
-              You'll have 20 minutes to answer 15 multiple choice questions. Good luck!
+              Your team will have 20 minutes to collaborate and answer 15 multiple choice questions. Good luck!
             </p>
             <p className="text-sm text-gray-300 mt-2">
               Note: BrainBees are only accessible during their scheduled time window.
@@ -135,17 +293,18 @@ export default function BrainBeePasscodePage() {
             </div>
           )}
 
-          <div className="flex justify-between items-center">
-            <Link href="/">
-              <Button type="button" variant="outline" className="border-gray-700 text-white hover:bg-gray-800">Back</Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="w-full bg-white text-black hover:bg-gray-200"
+          >
+            {isLoading ? "Checking..." : "Start BrainBee"}
+          </Button>
+          
+          <div className="text-center text-sm text-gray-500">
+            <Link href="/" className="text-blue-400 hover:underline">
+              Back to Home
             </Link>
-            <Button 
-              type="submit" 
-              disabled={isLoading}
-              className="bg-white text-black hover:bg-gray-200"
-            >
-              {isLoading ? "Checking..." : "Start BrainBee"}
-            </Button>
           </div>
         </form>
       </div>

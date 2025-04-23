@@ -1,20 +1,75 @@
-import { createClient } from "@/utils/supabase/server";
+"use client";
+
+import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Quiz } from "@/types/quiz";
 import { format } from "date-fns";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export const revalidate = 0;
+export default function QuizzesPage() {
+  const router = useRouter();
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const supabase = createClient();
 
-export default async function QuizzesPage() {
-  const supabase = await createClient();
-  const { data: quizzes, error } = await supabase
-    .from("quizzes")
-    .select("*")
-    .eq("quiz_type", "standard");
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("quizzes")
+          .select("*")
+          .eq("quiz_type", "standard");
 
-  if (error) {
-    console.error("Error fetching quizzes:", error);
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        setQuizzes(data || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error fetching quizzes");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchQuizzes();
+  }, [supabase]);
+
+  const handleDelete = async (quizId: string) => {
+    if (!confirm("Are you sure you want to delete this quiz?")) return;
+    
+    try {
+      setIsLoading(true);
+      const { error: deleteError } = await supabase
+        .from("quizzes")
+        .delete()
+        .eq("id", quizId);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      // Update local state to remove the deleted quiz
+      setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete quiz");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <p className="text-lg">Loading quizzes...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -27,11 +82,17 @@ export default async function QuizzesPage() {
               Back to Home
             </Button>
           </Link>
-          <Link href="/quizzes/create">
+        <Link href="/quizzes/create">
             <Button className="bg-white text-black hover:bg-gray-200">Add New</Button>
-          </Link>
+        </Link>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-900/30 border border-red-700 text-red-400 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       {quizzes && quizzes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -47,13 +108,22 @@ export default async function QuizzesPage() {
               <div className="text-sm text-gray-400 mb-6">
                 Created: {format(new Date(quiz.created_at), "MMM d, yyyy")}
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between gap-2">
                 <Link href={`/quizzes/${quiz.id}`}>
-                  <Button variant="outline" size="sm" className="border-gray-700 text-white hover:bg-gray-800">View Details</Button>
+                  <Button variant="outline" size="sm" className="border-gray-700 text-white hover:bg-gray-800">View</Button>
                 </Link>
                 <Link href={`/quizzes/${quiz.id}/edit`}>
                   <Button variant="outline" size="sm" className="border-gray-700 text-white hover:bg-gray-800">Edit</Button>
                 </Link>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-red-700 text-red-400 hover:bg-red-950"
+                  onClick={() => handleDelete(quiz.id)}
+                  disabled={isLoading}
+                >
+                  Delete
+                </Button>
               </div>
             </div>
           ))}

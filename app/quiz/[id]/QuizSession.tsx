@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ export default function QuizSession({ quizId }: { quizId: string }) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(40);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const [quizComplete, setQuizComplete] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,6 +31,77 @@ export default function QuizSession({ quizId }: { quizId: string }) {
     setUserName(storedUserName);
     setUserContact(storedUserContact);
   }, []);
+
+  // Handler functions
+  const recordAnswer = async (optionId: string | null) => {
+    if (!questions.length) return;
+    
+    const currentQuestion = questions[currentQuestionIndex];
+    const correctOption = currentQuestion.options?.find(o => o.is_correct);
+    const isCorrect = optionId === correctOption?.id;
+    
+    // Update score
+    if (isCorrect) {
+      setScore(prev => prev + 1);
+    }
+    
+    // Record response in database
+    try {
+      await supabase.from("user_responses").insert({
+        question_id: currentQuestion.id,
+        selected_option_id: optionId,
+        is_correct: isCorrect,
+        response_time: 40 - timeLeft,
+        user_name: userName,
+        contact_info: userContact,
+      });
+    } catch (err) {
+      console.error("Error recording response:", err);
+    }
+  };
+
+  const handleOptionSelect = (optionId: string) => {
+    setSelectedOption(optionId);
+  };
+
+  const handleNextQuestion = () => {
+    // Record the selected answer (or null if none selected)
+    recordAnswer(selectedOption);
+
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      finishQuiz();
+    }
+  };
+
+  const handleTimeUp = () => {
+    // Record answer on time up
+    recordAnswer(selectedOption);
+    
+    // Automatically move to the next question
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+    } else {
+      finishQuiz();
+    }
+  };
+
+  const finishQuiz = async () => {
+    setQuizComplete(true);
+    
+    // Record final score
+    try {
+      await supabase.from("user_quiz_scores").insert({
+        quiz_id: quizId,
+        score,
+        user_name: userName,
+        contact_info: userContact,
+      });
+    } catch (err) {
+      console.error("Error recording score:", err);
+    }
+  };
 
   // Fetch quiz and questions
   useEffect(() => {
@@ -80,7 +150,7 @@ export default function QuizSession({ quizId }: { quizId: string }) {
 
   // Timer effect
   useEffect(() => {
-    if (!questions.length || quizComplete || isAnswered) return;
+    if (!questions.length || quizComplete) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -94,7 +164,7 @@ export default function QuizSession({ quizId }: { quizId: string }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [questions, currentQuestionIndex, isAnswered, quizComplete]);
+  }, [questions, currentQuestionIndex, quizComplete]);
 
   // Reset timer when moving to next question
   useEffect(() => {
@@ -104,75 +174,7 @@ export default function QuizSession({ quizId }: { quizId: string }) {
     const timeLimit = questions[currentQuestionIndex]?.time_limit || 40;
     setTimeLeft(timeLimit);
     setSelectedOption(null);
-    setIsAnswered(false);
   }, [currentQuestionIndex, questions]);
-
-  const handleTimeUp = () => {
-    if (!isAnswered) {
-      setIsAnswered(true);
-      // Record wrong answer due to timeout
-      recordAnswer(null);
-    }
-  };
-
-  const handleOptionSelect = (optionId: string) => {
-    if (isAnswered) return;
-    
-    setSelectedOption(optionId);
-    setIsAnswered(true);
-    recordAnswer(optionId);
-  };
-
-  const recordAnswer = async (optionId: string | null) => {
-    if (!questions.length) return;
-    
-    const currentQuestion = questions[currentQuestionIndex];
-    const correctOption = currentQuestion.options?.find(o => o.is_correct);
-    const isCorrect = optionId === correctOption?.id;
-    
-    // Update score
-    if (isCorrect) {
-      setScore(prev => prev + 1);
-    }
-    
-    // Record response in database
-    try {
-      await supabase.from("user_responses").insert({
-        question_id: currentQuestion.id,
-        selected_option_id: optionId,
-        is_correct: isCorrect,
-        response_time: 40 - timeLeft,
-        user_name: userName,
-        contact_info: userContact,
-      });
-    } catch (err) {
-      console.error("Error recording response:", err);
-    }
-  };
-
-  const handleNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    } else {
-      finishQuiz();
-    }
-  };
-
-  const finishQuiz = async () => {
-    setQuizComplete(true);
-    
-    // Record final score
-    try {
-      await supabase.from("user_quiz_scores").insert({
-        quiz_id: quizId,
-        score,
-        user_name: userName,
-        contact_info: userContact,
-      });
-    } catch (err) {
-      console.error("Error recording score:", err);
-    }
-  };
 
   if (loading) {
     return (
@@ -260,16 +262,11 @@ export default function QuizSession({ quizId }: { quizId: string }) {
                 <button
                   key={option.id}
                   className={`w-full p-4 text-left rounded-lg border ${
-                    isAnswered
-                      ? selectedOption === option.id
-                        ? 'bg-blue-900 border-blue-700 text-white'
-                        : 'bg-gray-900 border-gray-700 text-white'
-                      : selectedOption === option.id
-                        ? 'bg-blue-900 border-blue-700 text-white'
-                        : 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800'
+                    selectedOption === option.id
+                      ? 'bg-blue-900 border-blue-700 text-white'
+                      : 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800'
                   }`}
                   onClick={() => handleOptionSelect(option.id)}
-                  disabled={isAnswered}
                 >
                   {option.option_text}
                 </button>
@@ -277,16 +274,20 @@ export default function QuizSession({ quizId }: { quizId: string }) {
             </div>
           </div>
           
-          {isAnswered && (
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleNextQuestion}
-                className="bg-white text-black hover:bg-gray-200"
-              >
-                {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
-              </Button>
-            </div>
-          )}
+          <div className="flex justify-between">
+            {!selectedOption && (
+              <div className="text-gray-400 text-sm mt-2">
+                Select an answer before continuing to the next question
+              </div>
+            )}
+            
+            <Button 
+              onClick={handleNextQuestion}
+              className="bg-white text-black hover:bg-gray-200 ml-auto"
+            >
+              {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+            </Button>
+          </div>
         </div>
       )}
     </div>

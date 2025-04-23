@@ -41,7 +41,7 @@ export default function RootLayout({
                   <div className="flex gap-4 items-center font-semibold">
                     <Link href={"/"} className="text-white">Jaknews 12 Quiz and BrainBee</Link>
                     <Link href={"/quizzes"} className="text-white">Manage Quizzes</Link>
-                    <Link href={"/doquiz"} className="text-white">Take a Quiz</Link>
+                    <Link href={"/quiz/passcode"} className="text-white">Take a Quiz</Link>
                   </div>
              
                 </div>

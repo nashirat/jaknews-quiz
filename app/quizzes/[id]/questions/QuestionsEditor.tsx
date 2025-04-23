@@ -17,6 +17,7 @@ interface QuestionFormState {
   questionType: "multiple_choice" | "true_false";
   questionImage: string;
   options: {
+    id: string;
     optionText: string;
     isCorrect: boolean;
     optionImage: string;
@@ -28,10 +29,10 @@ const emptyMultipleChoiceQuestion: QuestionFormState = {
   questionType: "multiple_choice",
   questionImage: "",
   options: [
-    { optionText: "", isCorrect: false, optionImage: "" },
-    { optionText: "", isCorrect: false, optionImage: "" },
-    { optionText: "", isCorrect: false, optionImage: "" },
-    { optionText: "", isCorrect: false, optionImage: "" },
+    { id: "mc-1", optionText: "", isCorrect: false, optionImage: "" },
+    { id: "mc-2", optionText: "", isCorrect: false, optionImage: "" },
+    { id: "mc-3", optionText: "", isCorrect: false, optionImage: "" },
+    { id: "mc-4", optionText: "", isCorrect: false, optionImage: "" },
   ],
 };
 
@@ -40,8 +41,8 @@ const emptyTrueFalseQuestion: QuestionFormState = {
   questionType: "true_false",
   questionImage: "",
   options: [
-    { optionText: "True", isCorrect: false, optionImage: "" },
-    { optionText: "False", isCorrect: false, optionImage: "" },
+    { id: "tf-1", optionText: "True", isCorrect: false, optionImage: "" },
+    { id: "tf-2", optionText: "False", isCorrect: false, optionImage: "" },
   ],
 };
 
@@ -129,6 +130,27 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
       optionImage: url,
     };
     setCurrentQuestion({ ...currentQuestion, options: updatedOptions });
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this quiz?")) return;
+    
+    try {
+      setIsLoading(true);
+      const { error: deleteError } = await supabase
+        .from("quizzes")
+        .delete()
+        .eq("id", quizId);
+
+      if (deleteError) {
+        throw new Error(deleteError.message);
+      }
+
+      router.push("/quizzes");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete quiz");
+      setIsLoading(false);
+    }
   };
 
   const addQuestion = async () => {
@@ -225,6 +247,14 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
             Add questions to your quiz (Passcode: {quiz.passcode})
           </p>
         </div>
+        <Button 
+          variant="outline" 
+          className="border-red-700 text-red-400 hover:bg-red-950"
+          onClick={handleDelete}
+          disabled={isLoading}
+        >
+          Delete
+        </Button>
       </div>
 
       {/* List of existing questions */}
@@ -352,7 +382,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
               <Label className="text-white">Options</Label>
               {currentQuestion.options.map((option, index) => (
                 <div
-                  key={index}
+                  key={option.id}
                   className="flex flex-col gap-3 border border-gray-700 p-3 rounded bg-black"
                 >
                   <div className="flex items-center gap-3">

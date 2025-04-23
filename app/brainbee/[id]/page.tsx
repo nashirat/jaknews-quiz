@@ -178,6 +178,14 @@ export default function BrainBeePage({
               </Link>
             </div>
           )}
+          
+          <div className="mt-4 pt-4 border-t border-gray-700">
+            <Link href={`/brainbee/${brainbeeId}/leaderboard`}>
+              <Button className="w-full bg-purple-600 text-white hover:bg-purple-700">
+                View Leaderboard
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
