@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Quiz, Question } from "@/types/quiz";
 import Image from "next/image";
+import { parseISO, format } from "date-fns";
 
 export default function BrainBeePage({ 
   params 
@@ -160,11 +161,11 @@ export default function BrainBeePage({
             <>
               <p className="text-gray-300 pt-2">
                 <span className="text-gray-500">Available From:</span>{' '}
-                {new Date(brainbee.available_from).toLocaleString()}
+                {brainbee.available_from ? format(parseISO(brainbee.available_from), "MMM d, yyyy h:mm a") + " UTC" : ''}
               </p>
               <p className="text-gray-300">
                 <span className="text-gray-500">Available To:</span>{' '}
-                {new Date(brainbee.available_to).toLocaleString()}
+                {brainbee.available_to ? format(parseISO(brainbee.available_to), "MMM d, yyyy h:mm a") + " UTC" : ''}
               </p>
             </>
           )}

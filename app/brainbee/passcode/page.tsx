@@ -82,15 +82,46 @@ export default function BrainBeePasscodePage() {
       const now = new Date();
       
       if (brainbee.available_from && brainbee.available_to) {
-        const availableFrom = new Date(brainbee.available_from);
-        const availableTo = new Date(brainbee.available_to);
+        // Create dates without timezone conversion by parsing the ISO strings directly
+        // This maintains the UTC time as stored in the database
+        const availableFromParts = brainbee.available_from.split(/[^0-9]/);
+        const availableToParts = brainbee.available_to.split(/[^0-9]/);
         
-        if (now < availableFrom) {
-          throw new Error(`This BrainBee is not yet available. It will be available from ${availableFrom.toLocaleString()}`);
+        // Create UTC date objects (avoiding automatic timezone conversion)
+        const availableFrom = new Date(Date.UTC(
+          parseInt(availableFromParts[0]), // year
+          parseInt(availableFromParts[1]) - 1, // month (0-based)
+          parseInt(availableFromParts[2]), // day
+          parseInt(availableFromParts[3]), // hour
+          parseInt(availableFromParts[4]), // minute
+          parseInt(availableFromParts[5] || '0') // second
+        ));
+        
+        const availableTo = new Date(Date.UTC(
+          parseInt(availableToParts[0]), // year
+          parseInt(availableToParts[1]) - 1, // month (0-based)
+          parseInt(availableToParts[2]), // day
+          parseInt(availableToParts[3]), // hour
+          parseInt(availableToParts[4]), // minute
+          parseInt(availableToParts[5] || '0') // second
+        ));
+        
+        // Convert current time to UTC for comparison
+        const nowUTC = new Date(Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate(),
+          now.getUTCHours(),
+          now.getUTCMinutes(),
+          now.getUTCSeconds()
+        ));
+        
+        if (nowUTC < availableFrom) {
+          throw new Error(`This BrainBee is not yet available. It will be available from ${availableFrom.toUTCString()}`);
         }
         
-        if (now > availableTo) {
-          throw new Error(`This BrainBee is no longer available. It was available until ${availableTo.toLocaleString()}`);
+        if (nowUTC > availableTo) {
+          throw new Error(`This BrainBee is no longer available. It was available until ${availableTo.toUTCString()}`);
         }
       }
 

@@ -2,7 +2,7 @@ import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Quiz } from "@/types/quiz";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 
 export const revalidate = 0;
 
@@ -23,27 +23,38 @@ export default async function BrainBeesPage() {
       return { status: 'unscheduled', message: 'Not scheduled' };
     }
     
+    // Create a UTC date for "now"
     const now = new Date();
-    const availableFrom = new Date(brainbee.available_from);
-    const availableTo = new Date(brainbee.available_to);
+    const nowUTC = new Date(Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+      now.getUTCHours(),
+      now.getUTCMinutes(),
+      now.getUTCSeconds()
+    ));
     
-    if (now < availableFrom) {
+    // Parse the ISO strings directly - keep as UTC
+    const availableFrom = parseISO(brainbee.available_from);
+    const availableTo = parseISO(brainbee.available_to);
+    
+    if (nowUTC < availableFrom) {
       return { 
         status: 'upcoming', 
-        message: `Opens ${format(availableFrom, "MMM d, h:mm a")}` 
+        message: `Opens ${format(availableFrom, "MMM d, h:mm a")} UTC` 
       };
     }
     
-    if (now > availableTo) {
+    if (nowUTC > availableTo) {
       return { 
         status: 'expired', 
-        message: `Closed ${format(availableTo, "MMM d, h:mm a")}` 
+        message: `Closed ${format(availableTo, "MMM d, h:mm a")} UTC` 
       };
     }
     
     return { 
       status: 'active', 
-      message: `Active until ${format(availableTo, "MMM d, h:mm a")}` 
+      message: `Active until ${format(availableTo, "MMM d, h:mm a")} UTC` 
     };
   };
 
@@ -81,7 +92,7 @@ export default async function BrainBeesPage() {
                   Questions: <span className="font-mono bg-gray-900 p-1 rounded">{brainbee.questions?.[0]?.count || 0}/15</span>
                 </div>
                 <div className="text-sm text-gray-400 mb-2">
-                  Created: {format(new Date(brainbee.created_at), "MMM d, yyyy")}
+                  Created: {format(parseISO(brainbee.created_at), "MMM d, yyyy")}
                 </div>
                 
                 {/* Availability status badge */}
@@ -100,8 +111,8 @@ export default async function BrainBeesPage() {
                 
                 {brainbee.available_from && brainbee.available_to && (
                   <div className="text-xs text-gray-500 mb-4">
-                    <div>From: {format(new Date(brainbee.available_from), "MMM d, yyyy h:mm a")}</div>
-                    <div>To: {format(new Date(brainbee.available_to), "MMM d, yyyy h:mm a")}</div>
+                    <div>From: {format(parseISO(brainbee.available_from), "MMM d, yyyy h:mm a")} UTC</div>
+                    <div>To: {format(parseISO(brainbee.available_to), "MMM d, yyyy h:mm a")} UTC</div>
                   </div>
                 )}
                 
