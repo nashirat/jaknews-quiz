@@ -30,7 +30,8 @@ export default function PasscodePage() {
       const { data: quizzes, error: quizError } = await supabase
         .from("quizzes")
         .select("id")
-        .eq("passcode", passcode.trim());
+        .eq("passcode", passcode.trim())
+        .eq("quiz_type", "standard");
 
       if (quizError) {
         throw new Error("Error checking passcode");

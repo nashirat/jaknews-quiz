@@ -2,8 +2,11 @@ export interface Quiz {
   id: string;
   name: string;
   passcode: string;
+  quiz_type: 'standard' | 'brainbee';
   created_at: string;
   updated_at: string;
+  available_from?: string;
+  available_to?: string;
 }
 
 export interface Question {
@@ -14,6 +17,7 @@ export interface Question {
   time_limit: number;
   created_at: string;
   updated_at: string;
+  image_url?: string;
   options?: Option[];
 }
 
@@ -24,6 +28,7 @@ export interface Option {
   is_correct: boolean;
   created_at: string;
   updated_at: string;
+  image_url?: string;
 }
 
 export interface UserResponse {

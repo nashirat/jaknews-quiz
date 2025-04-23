@@ -35,7 +35,7 @@ export default function CreateQuizPage() {
       // Insert quiz into Supabase
       const { data, error: supabaseError } = await supabase
         .from("quizzes")
-        .insert([{ name, passcode }])
+        .insert([{ name, passcode, quiz_type: 'standard' }])
         .select()
         .single();
 

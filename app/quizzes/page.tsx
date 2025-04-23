@@ -8,7 +8,10 @@ export const revalidate = 0;
 
 export default async function QuizzesPage() {
   const supabase = await createClient();
-  const { data: quizzes, error } = await supabase.from("quizzes").select("*");
+  const { data: quizzes, error } = await supabase
+    .from("quizzes")
+    .select("*")
+    .eq("quiz_type", "standard");
 
   if (error) {
     console.error("Error fetching quizzes:", error);
@@ -18,9 +21,16 @@ export default async function QuizzesPage() {
     <div className="flex-1 flex flex-col gap-6 px-4 py-8 max-w-6xl mx-auto w-full bg-black text-white">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Quizzes</h1>
-        <Link href="/quizzes/create">
-          <Button className="bg-white text-black hover:bg-gray-200">Add Quiz</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/">
+            <Button variant="outline" className="border-gray-700 text-white hover:bg-gray-800">
+              Back to Home
+            </Button>
+          </Link>
+          <Link href="/quizzes/create">
+            <Button className="bg-white text-black hover:bg-gray-200">Add New</Button>
+          </Link>
+        </div>
       </div>
 
       {quizzes && quizzes.length > 0 ? (

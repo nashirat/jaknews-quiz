@@ -9,33 +9,39 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import { Quiz, Question, Option } from "@/types/quiz";
+import ImageUpload from "@/components/ImageUpload";
+import Image from "next/image";
 
 interface QuestionFormState {
   questionText: string;
   questionType: "multiple_choice" | "true_false";
+  questionImage: string;
   options: {
     optionText: string;
     isCorrect: boolean;
+    optionImage: string;
   }[];
 }
 
 const emptyMultipleChoiceQuestion: QuestionFormState = {
   questionText: "",
   questionType: "multiple_choice",
+  questionImage: "",
   options: [
-    { optionText: "", isCorrect: false },
-    { optionText: "", isCorrect: false },
-    { optionText: "", isCorrect: false },
-    { optionText: "", isCorrect: false },
+    { optionText: "", isCorrect: false, optionImage: "" },
+    { optionText: "", isCorrect: false, optionImage: "" },
+    { optionText: "", isCorrect: false, optionImage: "" },
+    { optionText: "", isCorrect: false, optionImage: "" },
   ],
 };
 
 const emptyTrueFalseQuestion: QuestionFormState = {
   questionText: "",
   questionType: "true_false",
+  questionImage: "",
   options: [
-    { optionText: "True", isCorrect: false },
-    { optionText: "False", isCorrect: false },
+    { optionText: "True", isCorrect: false, optionImage: "" },
+    { optionText: "False", isCorrect: false, optionImage: "" },
   ],
 };
 
@@ -112,6 +118,19 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
     setCurrentQuestion({ ...currentQuestion, options: updatedOptions });
   };
 
+  const handleQuestionImageChange = (url: string) => {
+    setCurrentQuestion({ ...currentQuestion, questionImage: url });
+  };
+
+  const handleOptionImageChange = (index: number, url: string) => {
+    const updatedOptions = [...currentQuestion.options];
+    updatedOptions[index] = {
+      ...updatedOptions[index],
+      optionImage: url,
+    };
+    setCurrentQuestion({ ...currentQuestion, options: updatedOptions });
+  };
+
   const addQuestion = async () => {
     setIsLoading(true);
     setError(null);
@@ -143,6 +162,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
             quiz_id: quizId,
             question_text: currentQuestion.questionText,
             question_type: currentQuestion.questionType,
+            image_url: currentQuestion.questionImage || null,
           },
         ])
         .select()
@@ -157,6 +177,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
         question_id: questionData.id,
         option_text: option.optionText,
         is_correct: option.isCorrect,
+        image_url: option.optionImage || null,
       }));
 
       const { error: optionsError } = await supabase
@@ -217,6 +238,16 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
               <h3 className="font-medium">
                 {index + 1}. {question.question_text}
               </h3>
+              {question.image_url && (
+                <div className="mt-2 relative h-40 bg-gray-800 rounded overflow-hidden">
+                  <Image 
+                    src={question.image_url} 
+                    alt="Question image" 
+                    fill
+                    style={{objectFit: "contain"}} 
+                  />
+                </div>
+              )}
               <p className="text-sm text-gray-400 mt-1">
                 Type: {question.question_type === "multiple_choice" ? "Multiple Choice" : "True/False"}
               </p>
@@ -230,7 +261,19 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                         : "bg-white border border-gray-300 text-gray-800"
                     }`}
                   >
-                    {option.option_text} {option.is_correct && "✓"}
+                    <div className="flex items-center gap-2">
+                      {option.image_url && (
+                        <div className="relative w-10 h-10 bg-gray-100 rounded overflow-hidden">
+                          <Image 
+                            src={option.image_url} 
+                            alt="Option image" 
+                            fill
+                            style={{objectFit: "cover"}} 
+                          />
+                        </div>
+                      )}
+                      <span>{option.option_text} {option.is_correct && "✓"}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -298,33 +341,51 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
               />
             </div>
 
+            <div className="space-y-2">
+              <ImageUpload 
+                onImageUploaded={handleQuestionImageChange}
+                label="Question Image (Optional)"
+              />
+            </div>
+
             <div className="space-y-3">
               <Label className="text-white">Options</Label>
               {currentQuestion.options.map((option, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-3 border border-gray-700 p-3 rounded bg-black"
+                  className="flex flex-col gap-3 border border-gray-700 p-3 rounded bg-black"
                 >
-                  <Checkbox
-                    id={`correct-${index}`}
-                    checked={option.isCorrect}
-                    onCheckedChange={(checked) =>
-                      handleCorrectOptionChange(index, checked === true)
-                    }
-                    className="border-gray-400"
-                  />
-                  <Label htmlFor={`correct-${index}`} className="flex-grow text-white">
-                    {currentQuestion.questionType === "true_false" ? (
-                      option.optionText
-                    ) : (
-                      <Input
-                        value={option.optionText}
-                        onChange={(e) => handleOptionChange(index, e.target.value)}
-                        placeholder={`Option ${index + 1}`}
-                        className="bg-white border-gray-300 text-gray-800"
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id={`correct-${index}`}
+                      checked={option.isCorrect}
+                      onCheckedChange={(checked) =>
+                        handleCorrectOptionChange(index, checked === true)
+                      }
+                      className="border-gray-400"
+                    />
+                    <Label htmlFor={`correct-${index}`} className="flex-grow text-white">
+                      {currentQuestion.questionType === "true_false" ? (
+                        option.optionText
+                      ) : (
+                        <Input
+                          value={option.optionText}
+                          onChange={(e) => handleOptionChange(index, e.target.value)}
+                          placeholder={`Option ${index + 1}`}
+                          className="bg-white border-gray-300 text-gray-800"
+                        />
+                      )}
+                    </Label>
+                  </div>
+                  
+                  {currentQuestion.questionType === "multiple_choice" && (
+                    <div className="ml-7">
+                      <ImageUpload 
+                        onImageUploaded={(url) => handleOptionImageChange(index, url)}
+                        label={`Option ${index + 1} Image (Optional)`}
                       />
-                    )}
-                  </Label>
+                    </div>
+                  )}
                 </div>
               ))}
               <p className="text-xs text-gray-400">Select the correct answer</p>
