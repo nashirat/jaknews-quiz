@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 import { Quiz, Question, Option } from "@/types/quiz";
 
 export default function QuizSession({ quizId }: { quizId: string }) {
@@ -257,6 +258,17 @@ export default function QuizSession({ quizId }: { quizId: string }) {
           <div className="border border-gray-700 rounded-lg p-6 mb-6 bg-black">
             <h2 className="text-xl font-bold mb-6 text-white">{currentQuestion?.question_text}</h2>
             
+            {currentQuestion?.image_url && (
+              <div className="relative h-48 mb-6 bg-gray-800 rounded overflow-hidden">
+                <Image 
+                  src={currentQuestion.image_url} 
+                  alt="Question image" 
+                  fill
+                  style={{objectFit: "contain"}} 
+                />
+              </div>
+            )}
+            
             <div className="space-y-3">
               {currentQuestion?.options?.map((option) => (
                 <button
@@ -268,7 +280,19 @@ export default function QuizSession({ quizId }: { quizId: string }) {
                   }`}
                   onClick={() => handleOptionSelect(option.id)}
                 >
-                  {option.option_text}
+                  <div className="flex items-center gap-3">
+                    {option.image_url && (
+                      <div className="relative w-10 h-10 flex-shrink-0 bg-gray-800 rounded overflow-hidden">
+                        <Image 
+                          src={option.image_url} 
+                          alt="Option image" 
+                          fill
+                          style={{objectFit: "cover"}} 
+                        />
+                      </div>
+                    )}
+                    <span>{option.option_text}</span>
+                  </div>
                 </button>
               ))}
             </div>

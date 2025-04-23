@@ -24,27 +24,27 @@ interface QuestionFormState {
   }[];
 }
 
-const emptyMultipleChoiceQuestion: QuestionFormState = {
+const createEmptyMultipleChoiceQuestion = (): QuestionFormState => ({
   questionText: "",
   questionType: "multiple_choice",
   questionImage: "",
   options: [
-    { id: "mc-1", optionText: "", isCorrect: false, optionImage: "" },
-    { id: "mc-2", optionText: "", isCorrect: false, optionImage: "" },
-    { id: "mc-3", optionText: "", isCorrect: false, optionImage: "" },
-    { id: "mc-4", optionText: "", isCorrect: false, optionImage: "" },
+    { id: `mc-1-${Date.now()}-${Math.random()}`, optionText: "", isCorrect: false, optionImage: "" },
+    { id: `mc-2-${Date.now()}-${Math.random()}`, optionText: "", isCorrect: false, optionImage: "" },
+    { id: `mc-3-${Date.now()}-${Math.random()}`, optionText: "", isCorrect: false, optionImage: "" },
+    { id: `mc-4-${Date.now()}-${Math.random()}`, optionText: "", isCorrect: false, optionImage: "" },
   ],
-};
+});
 
-const emptyTrueFalseQuestion: QuestionFormState = {
+const createEmptyTrueFalseQuestion = (): QuestionFormState => ({
   questionText: "",
   questionType: "true_false",
   questionImage: "",
   options: [
-    { id: "tf-1", optionText: "True", isCorrect: false, optionImage: "" },
-    { id: "tf-2", optionText: "False", isCorrect: false, optionImage: "" },
+    { id: `tf-1-${Date.now()}-${Math.random()}`, optionText: "True", isCorrect: false, optionImage: "" },
+    { id: `tf-2-${Date.now()}-${Math.random()}`, optionText: "False", isCorrect: false, optionImage: "" },
   ],
-};
+});
 
 export default function QuestionsEditor({ quizId }: { quizId: string }) {
   const router = useRouter();
@@ -52,7 +52,7 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<QuestionFormState>(
-    emptyMultipleChoiceQuestion
+    createEmptyMultipleChoiceQuestion()
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,8 +97,8 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
   const handleQuestionTypeChange = (type: "multiple_choice" | "true_false") => {
     setCurrentQuestion(
       type === "multiple_choice"
-        ? emptyMultipleChoiceQuestion
-        : emptyTrueFalseQuestion
+        ? createEmptyMultipleChoiceQuestion()
+        : createEmptyTrueFalseQuestion()
     );
   };
 
@@ -213,8 +213,8 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
       // Reset form and refresh questions
       setCurrentQuestion(
         currentQuestion.questionType === "multiple_choice"
-          ? emptyMultipleChoiceQuestion
-          : emptyTrueFalseQuestion
+          ? createEmptyMultipleChoiceQuestion()
+          : createEmptyTrueFalseQuestion()
       );
 
       // Add the new question to the list
@@ -373,7 +373,9 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
 
             <div className="space-y-2">
               <ImageUpload 
+                key={`question-img-upload-${currentQuestion.questionType}`}
                 onImageUploaded={handleQuestionImageChange}
+                existingImageUrl={currentQuestion.questionImage}
                 label="Question Image (Optional)"
               />
             </div>
@@ -412,7 +414,9 @@ export default function QuestionsEditor({ quizId }: { quizId: string }) {
                   {currentQuestion.questionType === "multiple_choice" && (
                     <div key={`img-upload-${option.id}`} className="ml-7">
                       <ImageUpload 
+                        key={`option-img-upload-${option.id}`}
                         onImageUploaded={(url) => handleOptionImageChange(index, url)}
+                        existingImageUrl={option.optionImage}
                         label={`Option ${index + 1} Image (Optional)`}
                       />
                     </div>
